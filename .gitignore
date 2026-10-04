@@ -1,0 +1,6 @@
+_site/
+node_modules/
+.DS_Store
+.playwright-mcp/
+.claude/launch.json
+.claude/worktrees/

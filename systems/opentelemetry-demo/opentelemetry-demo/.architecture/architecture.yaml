@@ -1,0 +1,349 @@
+# yaml-language-server: $schema=https://getfurio.com/schema/v1.json
+# Unofficial map, reconstructed from public sources at open-telemetry/opentelemetry-demo 3.1.0.
+# Not affiliated with the OpenTelemetry project. Sources: ../../SOURCES.md
+version: 1
+project: opentelemetry-demo
+owner: open-telemetry
+closed: true
+
+components:
+  # Entry point
+  - id: frontend-proxy
+    type: proxy
+    name: Frontend proxy
+    description: Single entry point on port 8080; routes the shop, the feature flag UI, the load generator UI and the observability tools
+    tech: envoy
+    path: src/frontend-proxy
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/frontend-proxy/envoy.tmpl.yaml
+  - id: frontend
+    type: frontend
+    name: Frontend
+    description: The shop web app and its /api routes, which fan out to the backend services
+    tech: nextjs
+    path: src/frontend
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/frontend
+  - id: image-provider
+    type: service
+    name: Image provider
+    description: Serves the product images
+    tech: nginx
+    path: src/image-provider
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/image-provider
+  - id: load-generator
+    type: service
+    name: Load generator
+    description: Simulates shoppers browsing and buying through the frontend proxy
+    tech: locust
+    path: src/load-generator
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/load-generator/locustfile.py
+
+  # Shop services
+  - id: ad
+    type: service
+    name: Ad
+    description: Returns ads that match the products on the page
+    tech: java
+    path: src/ad
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/ad
+  - id: cart
+    type: service
+    name: Cart
+    description: Keeps the items of each shopper's cart
+    tech: dotnet
+    path: src/cart
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/cart
+  - id: checkout
+    type: service
+    name: Checkout
+    description: Places an order - prices the cart, charges the card, ships, sends the confirmation and publishes the order
+    tech: go
+    path: src/checkout
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/checkout/main.go
+  - id: currency
+    type: service
+    name: Currency
+    description: Converts amounts between currencies
+    tech: cpp
+    path: src/currency
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/currency
+  - id: email
+    type: service
+    name: Email
+    description: Sends the order confirmation email
+    tech: ruby
+    path: src/email
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/email/email_server.rb
+  - id: payment
+    type: service
+    name: Payment
+    description: Charges the card for an order
+    tech: node
+    path: src/payment
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/payment
+  - id: product-catalog
+    type: service
+    name: Product catalog
+    description: Lists, searches and returns products
+    tech: go
+    path: src/product-catalog
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/product-catalog/main.go
+  - id: quote
+    type: service
+    name: Quote
+    description: Computes the shipping cost
+    tech: php
+    path: src/quote
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/quote
+  - id: recommendation
+    type: service
+    name: Recommendation
+    description: Suggests other products to the shopper
+    tech: python
+    path: src/recommendation
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/recommendation/recommendation_server.py
+  - id: shipping
+    type: service
+    name: Shipping
+    description: Quotes and ships an order
+    tech: rust
+    path: src/shipping
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/shipping
+
+  # Order events
+  - id: orders
+    type: topic
+    name: orders
+    description: Kafka topic with one message per placed order
+    tech: kafka
+    path: src/kafka
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/compose.full.yaml
+  - id: accounting
+    type: service
+    name: Accounting
+    description: Stores every placed order
+    tech: dotnet
+    path: src/accounting
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/accounting/Consumer.cs
+  - id: fraud-detection
+    type: service
+    name: Fraud detection
+    description: Inspects every placed order
+    tech: kotlin
+    path: src/fraud-detection
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/fraud-detection
+
+  # Stores
+  - id: astronomy-db
+    type: database
+    name: Astronomy DB
+    description: Products (schema catalog) and stored orders (schema accounting)
+    tech: postgres
+    path: src/postgresql
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/postgresql/init.sql
+  - id: valkey-cart
+    type: cache
+    name: Cart store
+    description: Holds the carts
+    tech: valkey
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/compose.yaml
+
+  # Feature flags
+  - id: flagd
+    type: service
+    name: flagd
+    description: Feature flag service; the flags switch the demo's failure scenarios on and off
+    tech: flagd
+    path: src/flagd
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/flagd/demo.flagd.json
+  - id: flagd-ui
+    type: frontend
+    name: Flagd UI
+    description: Web UI to edit the feature flags
+    tech: phoenix
+    path: src/flagd-ui
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/flagd-ui
+
+  # Telemetry
+  - id: otel-collector
+    type: service
+    name: OpenTelemetry Collector
+    description: Receives traces, metrics and logs from every service over OTLP, scrapes the stores and the proxy, and exports to the backends
+    tech: opentelemetry-collector
+    path: src/otel-collector
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/otel-collector
+  - id: jaeger
+    type: service
+    name: Jaeger
+    description: Stores traces in memory and shows them
+    tech: jaeger
+    path: src/jaeger
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/jaeger/config.yml
+  - id: prometheus
+    type: database
+    name: Prometheus
+    description: Stores metrics, received over OTLP
+    tech: prometheus
+    path: src/prometheus
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/prometheus/prometheus-config.yaml
+  - id: opensearch
+    type: database
+    name: OpenSearch
+    description: Stores logs
+    tech: opensearch
+    path: src/opensearch
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/compose.observability.yaml
+  - id: grafana
+    type: frontend
+    name: Grafana
+    description: Dashboards over metrics, traces and logs
+    tech: grafana
+    path: src/grafana
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/grafana/provisioning/datasources
+  - id: opamp-server
+    type: service
+    name: OpAMP server
+    description: Control plane the Collector and some services report to; has a small UI
+    tech: go
+    path: src/opamp-server
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/opamp-server
+  - id: telemetry-docs
+    type: frontend
+    name: Telemetry docs
+    description: Generated documentation of the demo's telemetry schema
+    tech: nginx
+    path: src/telemetry-docs
+    links:
+      source: https://github.com/open-telemetry/opentelemetry-demo/tree/3.1.0/src/telemetry-docs
+
+relations:
+  # Routes of the proxy (src/frontend-proxy/envoy.tmpl.yaml)
+  - { from: frontend-proxy, to: frontend, type: serves, protocol: http, description: Catch-all route }
+  - { from: frontend-proxy, to: image-provider, type: serves, protocol: http, description: /images/ }
+  - { from: frontend-proxy, to: flagd, type: serves, protocol: http, description: /flagservice/ }
+  - { from: frontend-proxy, to: flagd-ui, type: serves, protocol: http, description: /feature }
+  - { from: frontend-proxy, to: load-generator, type: serves, protocol: http, description: /loadgen/ }
+  - { from: frontend-proxy, to: grafana, type: serves, protocol: http, description: /grafana/ }
+  - { from: frontend-proxy, to: jaeger, type: serves, protocol: http, description: /jaeger/ }
+  - { from: frontend-proxy, to: opamp-server, type: serves, protocol: http, description: /opamp/ }
+  - { from: frontend-proxy, to: telemetry-docs, type: serves, protocol: http, description: /telemetry/ }
+  - { from: frontend-proxy, to: otel-collector, type: serves, protocol: http, description: /otlp-http/ for telemetry sent by the browser }
+
+  # Shop flow (src/frontend/gateways, src/checkout/main.go, .env)
+  - { from: frontend, to: ad, type: calls, protocol: grpc }
+  - { from: frontend, to: cart, type: calls, protocol: grpc }
+  - { from: frontend, to: checkout, type: calls, protocol: grpc }
+  - { from: frontend, to: currency, type: calls, protocol: grpc }
+  - { from: frontend, to: product-catalog, type: calls, protocol: grpc }
+  - { from: frontend, to: recommendation, type: calls, protocol: grpc }
+  - { from: frontend, to: shipping, type: calls, protocol: http }
+  - { from: checkout, to: cart, type: calls, protocol: grpc }
+  - { from: checkout, to: currency, type: calls, protocol: grpc }
+  - { from: checkout, to: product-catalog, type: calls, protocol: grpc }
+  - { from: checkout, to: payment, type: calls, protocol: grpc }
+  - { from: checkout, to: shipping, type: calls, protocol: http }
+  - { from: checkout, to: email, type: calls, protocol: http }
+  - { from: recommendation, to: product-catalog, type: calls, protocol: grpc }
+  - { from: shipping, to: quote, type: calls, protocol: http }
+  - { from: load-generator, to: frontend-proxy, type: calls, protocol: http }
+
+  # Stores
+  - { from: cart, to: valkey-cart, type: reads_writes }
+  - { from: product-catalog, to: astronomy-db, type: reads, description: Schema catalog }
+  - { from: accounting, to: astronomy-db, type: writes, description: Schema accounting }
+
+  # Order events (compose.full.yaml)
+  - { from: checkout, to: orders, type: publishes, protocol: kafka }
+  - { from: accounting, to: orders, type: consumes, protocol: kafka }
+  - { from: fraud-detection, to: orders, type: consumes, protocol: kafka }
+
+  # Feature flags (FLAGD_HOST in compose.yaml and compose.full.yaml)
+  - { from: ad, to: flagd, type: calls }
+  - { from: cart, to: flagd, type: calls }
+  - { from: checkout, to: flagd, type: calls }
+  - { from: email, to: flagd, type: calls }
+  - { from: frontend, to: flagd, type: calls }
+  - { from: payment, to: flagd, type: calls }
+  - { from: product-catalog, to: flagd, type: calls }
+  - { from: recommendation, to: flagd, type: calls }
+  - { from: shipping, to: flagd, type: calls }
+  - { from: fraud-detection, to: flagd, type: calls }
+  - { from: load-generator, to: flagd, type: calls, protocol: ofrep }
+  - { from: flagd-ui, to: flagd, type: writes, protocol: file, description: Edits the flag file flagd watches }
+
+  # Telemetry export (OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_COLLECTOR_HOST in the compose files).
+  # Not critical: a service keeps working when the Collector is down.
+  - { from: ad, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: cart, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: checkout, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: currency, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: email, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: payment, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: product-catalog, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: quote, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: recommendation, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: shipping, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: accounting, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: fraud-detection, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: frontend, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: frontend-proxy, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: image-provider, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: load-generator, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: flagd, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: flagd-ui, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: telemetry-docs, to: otel-collector, type: calls, protocol: otlp, critical: false }
+  - { from: jaeger, to: otel-collector, type: calls, protocol: otlp, critical: false, description: Its own metrics }
+
+  # Collector pipelines (src/otel-collector/*.yml)
+  - { from: otel-collector, to: jaeger, type: calls, protocol: otlp, description: Traces }
+  - { from: otel-collector, to: prometheus, type: writes, protocol: otlp, description: Metrics }
+  - { from: otel-collector, to: opensearch, type: writes, protocol: http, description: Logs }
+  - { from: otel-collector, to: opamp-server, type: calls, protocol: opamp }
+  - { from: otel-collector, to: valkey-cart, type: reads, critical: false, description: Scrapes its metrics }
+  - { from: otel-collector, to: astronomy-db, type: reads, critical: false, description: Scrapes its metrics }
+  - { from: otel-collector, to: orders, type: reads, critical: false, protocol: kafka, description: Broker and topic metrics }
+  - { from: otel-collector, to: ad, type: reads, critical: false, protocol: http, description: Scrapes its Prometheus endpoint }
+  - { from: otel-collector, to: image-provider, type: reads, critical: false, protocol: http, description: nginx status }
+  - { from: otel-collector, to: frontend-proxy, type: reads, critical: false, protocol: http, description: Availability check }
+
+  # Observability backends
+  - { from: jaeger, to: prometheus, type: reads, protocol: http, description: Metrics for the monitor tab }
+  - { from: grafana, to: prometheus, type: reads, protocol: http }
+  - { from: grafana, to: jaeger, type: reads, protocol: http }
+  - { from: grafana, to: opensearch, type: reads, protocol: http }
+  - { from: cart, to: opamp-server, type: calls, protocol: opamp }
+  - { from: product-catalog, to: opamp-server, type: calls, protocol: opamp }
+
+diagrams:
+  - file: diagrams/place-order.mmd
+    title: Placing an order
+    components: [checkout, frontend, orders]
+  - file: diagrams/telemetry-pipeline.mmd
+    title: Telemetry pipeline
+    components: [otel-collector, jaeger, prometheus, opensearch, grafana]

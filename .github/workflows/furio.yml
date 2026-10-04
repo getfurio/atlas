@@ -1,0 +1,26 @@
+# Every manifest under systems/ is checked on every pull request: an error fails the check and
+# shows up on the line that caused it.
+name: Furio
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: List the manifests
+        id: systems
+        run: echo "paths=$(echo systems/*/*/ | tr -d '\n')" >> "$GITHUB_OUTPUT"
+      - uses: getfurio/furio@9381277ddb2f13c6cdf50e334a86ec6189752ae1 # v0.4.0
+        with:
+          path: ${{ steps.systems.outputs.paths }}

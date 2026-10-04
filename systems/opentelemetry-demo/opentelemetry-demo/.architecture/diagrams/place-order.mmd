@@ -1,0 +1,24 @@
+sequenceDiagram
+    participant F as Frontend
+    participant C as Checkout
+    participant Cart
+    participant PC as Product catalog
+    participant Cur as Currency
+    participant S as Shipping
+    participant P as Payment
+    participant E as Email
+    participant K as orders (Kafka)
+
+    F->>C: PlaceOrder
+    C->>Cart: get the cart
+    C->>PC: get each product
+    C->>Cur: convert the prices
+    C->>S: quote the shipping
+    C->>P: charge the card
+    C->>S: ship the order
+    C->>Cart: empty the cart
+    C->>E: send the confirmation
+    C-)K: publish the order
+    C-->>F: order placed
+    K-)Accounting: store the order
+    K-)Fraud detection: inspect the order

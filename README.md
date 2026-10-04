@@ -1,0 +1,71 @@
+# Atlas
+
+Architecture maps of open source systems you already know, written as
+[Furio](https://github.com/getfurio/furio) manifests: every component, what it depends on, and
+what stops working when one of them goes down.
+
+Each map is **unofficial**: reconstructed from the public sources of a tagged release, and not
+affiliated with or endorsed by the project it describes.
+
+## Systems
+
+| System | Release | Components | Manifest | Sources |
+| --- | --- | --- | --- | --- |
+| [OpenTelemetry Demo](https://github.com/open-telemetry/opentelemetry-demo) | 3.1.0 | 28 | [architecture.yaml](systems/opentelemetry-demo/opentelemetry-demo/.architecture/architecture.yaml) | [SOURCES.md](systems/opentelemetry-demo/SOURCES.md) |
+
+## Look at the map
+
+With Node 22 or later:
+
+```bash
+npx @getfurio/cli build --workspace atlas --site --out _site systems/*/*/
+```
+
+```bash
+npx serve _site
+```
+
+Select a component and choose **Blast radius** to see what is affected if it goes down. The view
+lives in the URL, so it can be shared: `#/?sel=opentelemetry-demo/valkey-cart&mode=impact`.
+
+## How a system is mapped
+
+```
+systems/
+  <system>/
+    SOURCES.md                 the upstream release, the files read, the choices made
+    <repo>/.architecture/
+      architecture.yaml        project: <system>
+      diagrams/*.mmd
+```
+
+One Furio project per system. When the system lives in several repos upstream, it has several
+folders here, each declaring what that repo owns.
+
+The rules, because a wrong map of a well-known project helps nobody:
+
+- A manifest is pinned to an upstream release, a tag or a commit, written in `SOURCES.md`.
+- Every component and every relation comes from a file of that release, and `SOURCES.md` names
+  the file. Nothing is written from memory.
+- What cannot be verified stays out.
+- A dependency a component keeps working without (telemetry, metric scrapes) is a relation with
+  `critical: false`.
+- Descriptions and diagrams are written from scratch; no upstream text or drawing is copied.
+- Project names describe what is mapped. No logos.
+
+## Contributing
+
+Corrections are welcome: open a pull request that changes the manifest and names the upstream
+file that proves it. To add a system, open an issue first. Every pull request is checked by
+`furio validate`; run it yourself with:
+
+```bash
+npx @getfurio/cli validate systems/*/*/
+```
+
+Maintainers of a mapped project: if the map is wrong, or you would rather keep the manifest in
+your own repo, open an issue.
+
+## License
+
+[MIT](LICENSE). The names of the mapped projects belong to their owners.

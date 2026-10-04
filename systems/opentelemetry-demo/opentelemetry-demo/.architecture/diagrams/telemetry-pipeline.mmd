@@ -1,0 +1,12 @@
+flowchart LR
+    services[Every service] -- OTLP --> collector[OpenTelemetry Collector]
+    browser[Browser] -- "OTLP over /otlp-http/" --> proxy[Frontend proxy] --> collector
+    collector -- scrapes --> targets[Cart store, Astronomy DB, Kafka, Ad, Image provider, Frontend proxy]
+    collector -- traces --> jaeger[Jaeger]
+    collector -- metrics --> prometheus[Prometheus]
+    collector -- logs --> opensearch[OpenSearch]
+    collector -- status --> opamp[OpAMP server]
+    jaeger -- reads metrics --> prometheus
+    grafana[Grafana] --> prometheus
+    grafana --> jaeger
+    grafana --> opensearch
