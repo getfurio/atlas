@@ -1,4 +1,4 @@
-# Builds the map from every manifest under systems/ and publishes it on GitHub Pages.
+# Builds the maps from every manifest under systems/ and publishes them on GitHub Pages.
 name: Map
 
 on:
@@ -26,8 +26,16 @@ jobs:
         with:
           node-version: 24
       # The Action builds a map from a GitHub organization; from folders of one repo, the CLI does.
-      - name: Build the map
-        run: npx --yes @getfurio/cli@0.4.0 build --workspace atlas --site --strict --out _site systems/*/*/
+      # One map with every system at the root, and one map per system in its own folder, so a
+      # system can be looked at, and linked to, on its own.
+      - name: Build the maps
+        run: |
+          furio="npx --yes @getfurio/cli@0.4.0"
+          $furio build --workspace atlas --site --strict --out _site systems/*/*/
+          for dir in systems/*/; do
+            system=$(basename "$dir")
+            $furio build --workspace "$system" --site --strict --out "_site/$system" "$dir"*/
+          done
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site
