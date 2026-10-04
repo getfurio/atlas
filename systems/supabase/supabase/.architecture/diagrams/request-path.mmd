@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant App as Your app
+    participant GW as API gateway
+    participant Auth
+    participant REST as PostgREST
+    participant DB as Postgres
+
+    App->>GW: /auth/v1/... (API key)
+    GW->>Auth: checks the key, strips the prefix
+    Auth->>DB: as supabase_auth_admin
+    Auth-->>App: JWT
+    App->>GW: /rest/v1/... (API key, JWT)
+    GW->>REST: checks the key, strips the prefix
+    REST->>DB: as authenticator
+    REST-->>App: JSON

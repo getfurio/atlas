@@ -12,6 +12,7 @@ affiliated with or endorsed by the project it describes.
 | System | Release | Components | Manifest | Sources |
 | --- | --- | --- | --- | --- |
 | [OpenTelemetry Demo](https://github.com/open-telemetry/opentelemetry-demo) | 3.1.0 | 28 | [architecture.yaml](systems/opentelemetry-demo/opentelemetry-demo/.architecture/architecture.yaml) | [SOURCES.md](systems/opentelemetry-demo/SOURCES.md) |
+| [Supabase](https://github.com/supabase/supabase/tree/master/docker), self-hosted | commit `7353782` | 14 | [architecture.yaml](systems/supabase/supabase/.architecture/architecture.yaml) | [SOURCES.md](systems/supabase/SOURCES.md) |
 
 ## The map
 
@@ -33,6 +34,14 @@ Select a component and choose **Blast radius** to see what is affected if it goe
 
 Telemetry is on the map as non-critical relations, drawn dotted: every service exports to the
 Collector and keeps working without it, so the blast radius does not follow them.
+
+### Supabase, self-hosted
+
+| Question | View |
+| --- | --- |
+| What stops working if Postgres goes down? | [Blast radius of db](https://getfurio.github.io/atlas/#/?sel=supabase/db&mode=impact) |
+| What is affected if PostgREST goes down? | [Blast radius of rest](https://getfurio.github.io/atlas/#/?sel=supabase/rest&mode=impact) |
+| What does Storage need to work? | [What storage depends on](https://getfurio.github.io/atlas/#/?sel=supabase/storage&mode=depends) |
 
 ### Build it yourself
 

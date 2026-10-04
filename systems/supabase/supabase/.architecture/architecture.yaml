@@ -1,0 +1,154 @@
+# yaml-language-server: $schema=https://getfurio.com/schema/v1.json
+# Unofficial map, reconstructed from public sources: the self-hosting Docker Compose stack of
+# supabase/supabase at commit 7353782. Not affiliated with Supabase. Sources: ../../SOURCES.md
+version: 1
+project: supabase
+owner: supabase
+closed: true
+
+components:
+  # Entry points
+  - id: api-gw
+    type: proxy
+    name: API gateway
+    description: Single entry point on port 8000; checks the API keys and routes each path to its service
+    tech: envoy
+    links:
+      source: https://github.com/supabase/supabase/blob/7353782724d837be316f0f6f87471ed176ab4bfd/docker/volumes/api/envoy/lds.template.yaml
+  - id: supavisor
+    type: proxy
+    name: Supavisor
+    description: Connection pooler; the Postgres ports of the stack (5432 and 6543) are its own
+    tech: supavisor
+    links:
+      source: https://github.com/supabase/supabase/blob/7353782724d837be316f0f6f87471ed176ab4bfd/docker/volumes/pooler/pooler.exs
+      repo: https://github.com/supabase/supavisor
+  - id: studio
+    type: frontend
+    name: Studio
+    description: Dashboard to manage the project
+    links:
+      source: https://github.com/supabase/supabase/blob/7353782724d837be316f0f6f87471ed176ab4bfd/docker/docker-compose.yml
+      repo: https://github.com/supabase/supabase/tree/master/apps/studio
+
+  # API services
+  - id: auth
+    type: service
+    name: Auth
+    description: Sign-ups, logins and sessions; issues the JWTs the other services check
+    links:
+      source: https://github.com/supabase/supabase/blob/7353782724d837be316f0f6f87471ed176ab4bfd/docker/docker-compose.yml
+      repo: https://github.com/supabase/auth
+  - id: rest
+    type: service
+    name: PostgREST
+    description: Turns the database into a REST API; also serves GraphQL through a database function
+    tech: postgrest
+    links:
+      source: https://github.com/supabase/supabase/blob/7353782724d837be316f0f6f87471ed176ab4bfd/docker/docker-compose.yml
+      repo: https://github.com/PostgREST/postgrest
+  - id: realtime
+    type: service
+    name: Realtime
+    description: Listens to database changes and broadcasts them over websockets
+    tech: elixir
+    links:
+      source: https://github.com/supabase/supabase/blob/7353782724d837be316f0f6f87471ed176ab4bfd/docker/docker-compose.yml
+      repo: https://github.com/supabase/realtime
+  - id: storage
+    type: service
+    name: Storage
+    description: API to manage files, with the database handling permissions
+    links:
+      source: https://github.com/supabase/supabase/blob/7353782724d837be316f0f6f87471ed176ab4bfd/docker/docker-compose.yml
+      repo: https://github.com/supabase/storage
+  - id: imgproxy
+    type: service
+    name: imgproxy
+    description: Resizes and converts the images Storage serves
+    tech: imgproxy
+    links:
+      source: https://github.com/supabase/supabase/blob/7353782724d837be316f0f6f87471ed176ab4bfd/docker/docker-compose.yml
+      repo: https://github.com/imgproxy/imgproxy
+  - id: meta
+    type: service
+    name: postgres-meta
+    description: API to manage Postgres - tables, roles, queries; used by Studio
+    links:
+      source: https://github.com/supabase/supabase/blob/7353782724d837be316f0f6f87471ed176ab4bfd/docker/docker-compose.yml
+      repo: https://github.com/supabase/postgres-meta
+  - id: functions
+    type: service
+    name: Edge Functions
+    description: Runs the project's functions; a main function checks the JWT and hands each request to a worker
+    tech: deno
+    links:
+      source: https://github.com/supabase/supabase/blob/7353782724d837be316f0f6f87471ed176ab4bfd/docker/volumes/functions/main/index.ts
+      repo: https://github.com/supabase/edge-runtime
+
+  # Stores
+  - id: db
+    type: database
+    name: Postgres
+    description: The project's database; also holds the schemas of Auth, Storage and Realtime and the pooler's own database
+    tech: postgres
+    links:
+      source: https://github.com/supabase/supabase/tree/7353782724d837be316f0f6f87471ed176ab4bfd/docker/volumes/db
+      repo: https://github.com/supabase/postgres
+  - id: storage-files
+    type: storage
+    name: Storage files
+    description: Folder on the host where Storage keeps the files (the default file backend)
+    links:
+      source: https://github.com/supabase/supabase/blob/7353782724d837be316f0f6f87471ed176ab4bfd/docker/docker-compose.yml
+  - id: functions-code
+    type: storage
+    name: Functions folder
+    description: Folder on the host with the code of the functions
+    links:
+      source: https://github.com/supabase/supabase/tree/7353782724d837be316f0f6f87471ed176ab4bfd/docker/volumes/functions
+
+  # Outside the stack
+  - id: smtp
+    type: external
+    name: SMTP server
+    description: The mail server you configure; Auth sends confirmation, invite and recovery emails through it
+    links:
+      source: https://github.com/supabase/supabase/blob/7353782724d837be316f0f6f87471ed176ab4bfd/docker/.env.example
+
+relations:
+  # Routes of the gateway (docker/volumes/api/envoy/lds.template.yaml and cds.yaml)
+  - { from: api-gw, to: auth, type: serves, protocol: http, description: /auth/v1/ }
+  - { from: api-gw, to: rest, type: serves, protocol: http, description: /rest/v1/ and /graphql/v1 }
+  - { from: api-gw, to: realtime, type: serves, protocol: websocket, description: /realtime/v1/ }
+  - { from: api-gw, to: storage, type: serves, protocol: http, description: /storage/v1/ }
+  - { from: api-gw, to: functions, type: serves, protocol: http, description: /functions/v1/ }
+  - { from: api-gw, to: meta, type: serves, protocol: http, description: /pg/ }
+  - { from: api-gw, to: studio, type: serves, protocol: http, description: Catch-all route and /mcp }
+
+  # Pooler (docker/volumes/pooler/pooler.exs)
+  - { from: supavisor, to: db, type: serves, protocol: postgres, description: Pools client connections }
+  - { from: supavisor, to: db, type: reads_writes, protocol: postgres, description: Its own tenants in the _supabase database }
+
+  # Database users (connection strings in docker/docker-compose.yml)
+  - { from: auth, to: db, type: reads_writes, protocol: postgres, description: As supabase_auth_admin }
+  - { from: rest, to: db, type: reads_writes, protocol: postgres, description: As authenticator }
+  - { from: realtime, to: db, type: reads_writes, protocol: postgres, description: As supabase_admin; schema _realtime }
+  - { from: storage, to: db, type: reads_writes, protocol: postgres, description: As supabase_storage_admin }
+  - { from: meta, to: db, type: reads_writes, protocol: postgres, description: As postgres }
+
+  # Service to service (environment in docker/docker-compose.yml)
+  - { from: studio, to: meta, type: calls, protocol: http, description: STUDIO_PG_META_URL }
+  - { from: studio, to: api-gw, type: calls, protocol: http, description: SUPABASE_URL }
+  - { from: studio, to: functions-code, type: reads, protocol: file }
+  - { from: storage, to: rest, type: calls, protocol: http, description: POSTGREST_URL }
+  - { from: storage, to: imgproxy, type: calls, protocol: http, description: Image transformations }
+  - { from: storage, to: storage-files, type: reads_writes, protocol: file }
+  - { from: imgproxy, to: storage-files, type: reads, protocol: file }
+  - { from: functions, to: functions-code, type: reads, protocol: file }
+  - { from: auth, to: smtp, type: calls, protocol: smtp }
+
+diagrams:
+  - file: diagrams/request-path.mmd
+    title: The path of an API request
+    components: [api-gw, auth, rest, db]
