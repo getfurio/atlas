@@ -13,7 +13,28 @@ affiliated with or endorsed by the project it describes.
 | --- | --- | --- | --- | --- |
 | [OpenTelemetry Demo](https://github.com/open-telemetry/opentelemetry-demo) | 3.1.0 | 28 | [architecture.yaml](systems/opentelemetry-demo/opentelemetry-demo/.architecture/architecture.yaml) | [SOURCES.md](systems/opentelemetry-demo/SOURCES.md) |
 
-## Look at the map
+## The map
+
+**[getfurio.github.io/atlas](https://getfurio.github.io/atlas/)**: every system, rebuilt on each
+change to this repo.
+
+Select a component and choose **Blast radius** to see what is affected if it goes down, or
+**Depends on** to see what it needs. The view lives in the URL, so every answer is a link.
+
+### OpenTelemetry Demo
+
+| Question | View |
+| --- | --- |
+| What stops working if flagd, the feature flag service, goes down? | [Blast radius of flagd](https://getfurio.github.io/atlas/#/?sel=opentelemetry-demo/flagd&mode=impact) |
+| What is affected if the PostgreSQL database goes down? | [Blast radius of astronomy-db](https://getfurio.github.io/atlas/#/?sel=opentelemetry-demo/astronomy-db&mode=impact) |
+| What if the Kafka `orders` topic is unavailable? | [Blast radius of orders](https://getfurio.github.io/atlas/#/?sel=opentelemetry-demo/orders&mode=impact) |
+| What if the cart store (Valkey) goes down? | [Blast radius of valkey-cart](https://getfurio.github.io/atlas/#/?sel=opentelemetry-demo/valkey-cart&mode=impact) |
+| What does placing an order need? | [What checkout depends on](https://getfurio.github.io/atlas/#/?sel=opentelemetry-demo/checkout&mode=depends) |
+
+Telemetry is on the map as non-critical relations, drawn dotted: every service exports to the
+Collector and keeps working without it, so the blast radius does not follow them.
+
+### Build it yourself
 
 With Node 22 or later:
 
@@ -24,9 +45,6 @@ npx @getfurio/cli build --workspace atlas --site --out _site systems/*/*/
 ```bash
 npx serve _site
 ```
-
-Select a component and choose **Blast radius** to see what is affected if it goes down. The view
-lives in the URL, so it can be shared: `#/?sel=opentelemetry-demo/valkey-cart&mode=impact`.
 
 ## How a system is mapped
 
