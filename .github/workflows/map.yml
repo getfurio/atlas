@@ -30,7 +30,7 @@ jobs:
       # system can be looked at, and linked to, on its own.
       - name: Build the maps
         run: |
-          furio="npx --yes @getfurio/cli@0.4.0"
+          furio="npx --yes @getfurio/cli@0.6.0"
           $furio build --workspace atlas --site --strict --out _site systems/*/*/
           for dir in systems/*/; do
             system=$(basename "$dir")
