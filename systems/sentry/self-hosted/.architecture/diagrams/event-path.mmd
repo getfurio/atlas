@@ -1,0 +1,12 @@
+flowchart LR
+    sdk[SDK] --> nginx --> relay[Relay]
+    relay -- project config --> web[Sentry web]
+    relay -- ingest topics --> kafka[(Kafka)]
+    kafka --> ingest[Ingest consumers]
+    ingest -- stack traces --> symbolicator[Symbolicator]
+    ingest -- payloads --> seaweedfs[(SeaweedFS nodestore)]
+    ingest -- event stream --> kafka2[(Kafka)]
+    kafka2 --> snuba[Snuba consumers] --> clickhouse[(ClickHouse)]
+    kafka2 --> post[Post-process forwarders] -- notifications --> smtp[SMTP]
+    web -- queries --> snubaapi[Snuba API] --> clickhouse
+    web --> pgbouncer --> postgres[(Postgres)]

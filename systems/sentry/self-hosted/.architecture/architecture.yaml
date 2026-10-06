@@ -1,0 +1,287 @@
+# yaml-language-server: $schema=https://getfurio.com/schema/v1.json
+# Unofficial map, reconstructed from public sources: getsentry/self-hosted at release 26.9.0.
+# Not affiliated with Sentry. Sources: ../../SOURCES.md
+version: 1
+project: sentry
+owner: getsentry
+closed: true
+
+components:
+  - id: nginx
+    type: proxy
+    name: nginx
+    description: Single entry point on port 80; sends SDK traffic to Relay and everything else to the web app
+    tech: nginx
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/nginx.conf
+  - id: relay
+    type: service
+    name: Relay
+    description: 'Receives events from the SDKs, checks them against the project configuration and puts them on Kafka'
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/relay/config.example.yml
+      repo: https://github.com/getsentry/relay
+  - id: web
+    type: service
+    name: Sentry web
+    description: The UI and the API; also the upstream Relay asks for project configurations
+    tech: python
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/sentry/sentry.conf.example.py
+      repo: https://github.com/getsentry/sentry
+  - id: ingest-consumers
+    type: service
+    name: Ingest consumers
+    description: 'Sentry processes that take events, attachments, transactions, metrics, occurrences, monitors, feedback, spans and uptime results off Kafka (events-consumer, attachments-consumer, transactions-consumer, metrics-consumer, ingest-occurrences, ingest-monitors, ingest-feedback-events, process-spans, monitors-clock-tick, monitors-clock-tasks, uptime-results); only the first two run with errors-only'
+    tech: python
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+      repo: https://github.com/getsentry/sentry
+  - id: post-process-forwarders
+    type: service
+    name: Post-process forwarders
+    description: 'Sentry processes that run alerts, plugins and notifications after an event is stored (post-process-forwarder-errors, -transactions, -issue-platform); only the first runs with errors-only'
+    tech: python
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+      repo: https://github.com/getsentry/sentry
+  - id: taskscheduler
+    type: service
+    name: Task scheduler
+    description: Puts Sentry's periodic tasks on the task queue
+    tech: python
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+      repo: https://github.com/getsentry/sentry
+  - id: taskworker
+    type: service
+    name: Task worker
+    description: 'Runs Sentry''s background tasks, handed out by the task broker'
+    tech: python
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+      repo: https://github.com/getsentry/sentry
+  - id: taskbroker
+    type: service
+    name: Task broker
+    description: Takes tasks off Kafka and hands them to the workers over gRPC; keeps its state in a local SQLite file
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/taskbroker/config.yml
+      repo: https://github.com/getsentry/taskbroker
+  - id: launchpad-taskworker
+    type: service
+    name: Launchpad worker
+    description: Worker for mobile app size analysis
+    tags: [feature-complete]
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+      repo: https://github.com/getsentry/launchpad
+  - id: sentry-cleanup
+    type: job
+    name: Sentry cleanup
+    description: Nightly cron that deletes events older than the retention period
+    tech: python
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+      repo: https://github.com/getsentry/sentry
+  - id: snuba-api
+    type: service
+    name: Snuba API
+    description: Query service over ClickHouse for the web app and the workers
+    tech: python
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+      repo: https://github.com/getsentry/snuba
+  - id: snuba-consumers
+    type: service
+    name: Snuba consumers
+    description: 'Snuba processes that write Kafka streams into ClickHouse (errors, outcomes, group attributes, transactions, replays, issue occurrences, metrics, profiles, EAP items) and the replacer; with errors-only only errors, outcomes, group attributes and the replacer run'
+    tech: rust
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+      repo: https://github.com/getsentry/snuba
+  - id: snuba-subscriptions
+    type: service
+    name: Snuba subscriptions
+    description: 'Snuba schedulers and executors that run alert subscriptions against ClickHouse and publish the results (events, transactions, metrics, EAP items); with errors-only only events'
+    tech: python
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+      repo: https://github.com/getsentry/snuba
+  - id: symbolicator
+    type: service
+    name: Symbolicator
+    description: Symbolicates native and JavaScript stack traces; keeps a cache on its own volume
+    tech: rust
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/symbolicator/config.example.yml
+      repo: https://github.com/getsentry/symbolicator
+  - id: symbolicator-cleanup
+    type: job
+    name: Symbolicator cleanup
+    description: Hourly cleanup of Symbolicator's cache volume
+    tech: rust
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+      repo: https://github.com/getsentry/symbolicator
+  - id: vroom
+    type: service
+    name: Vroom
+    description: 'Profiling service: reads profiles from Kafka, stores them in the profiles bucket and queries Snuba'
+    tech: go
+    tags: [feature-complete]
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+      repo: https://github.com/getsentry/vroom
+  - id: uptime-checker
+    type: service
+    name: Uptime checker
+    description: Checks the configured URLs and publishes the results
+    tags: [feature-complete]
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+      repo: https://github.com/getsentry/uptime-checker
+  - id: smtp
+    type: service
+    name: SMTP
+    description: Mail relay container; Sentry sends every email through it
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+  - id: postgres
+    type: database
+    name: Postgres
+    description: 'Sentry''s main database: organizations, projects, issues, users'
+    tech: postgres
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+  - id: pgbouncer
+    type: proxy
+    name: PgBouncer
+    description: 'Connection pooler in front of Postgres; Sentry connects to it, not to Postgres'
+    tech: pgbouncer
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+  - id: redis
+    type: cache
+    name: Redis
+    description: 'Valkey, used by Sentry for cache, buffers, quotas, rate limits, digests and the time series database, and by Relay and Snuba'
+    tech: valkey
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/redis.conf
+  - id: memcached
+    type: cache
+    name: Memcached
+    description: Django cache of the web app and the workers
+    tech: memcached
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+  - id: kafka
+    type: topic
+    name: Kafka
+    description: 'Event stream between Relay, Sentry, Snuba and the other services: ingest, outcomes, post-process, tasks, subscription results, profiles, uptime'
+    tech: kafka
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/docker-compose.yml
+  - id: clickhouse
+    type: database
+    name: ClickHouse
+    description: 'Column store for events, transactions, metrics and the other datasets Snuba serves'
+    tech: clickhouse
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/clickhouse
+  - id: seaweedfs
+    type: storage
+    name: SeaweedFS
+    description: 'S3-compatible object store: the nodestore bucket with the event payloads, and the profiles bucket'
+    tech: seaweedfs
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/install/bootstrap-s3-nodestore.sh
+  - id: sentry-data
+    type: storage
+    name: Sentry data volume
+    description: 'Shared volume with the filestore (uploaded files, release artifacts), the dsym and release file caches'
+    tech: docker-volume
+    links:
+      source: https://github.com/getsentry/self-hosted/blob/26.9.0/sentry/config.example.yml
+
+relations:
+  - { from: nginx, to: relay, type: serves, protocol: http, description: '/api/store/, /api/<project>/, /api/0/relays/' }
+  - { from: nginx, to: web, type: serves, protocol: http, description: Everything else }
+  - { from: relay, to: web, type: calls, protocol: http, description: 'Upstream: project configurations' }
+  - { from: relay, to: kafka, type: publishes, protocol: kafka }
+  - { from: relay, to: redis, type: reads_writes, protocol: redis }
+  - { from: web, to: pgbouncer, type: reads_writes, protocol: postgres }
+  - { from: web, to: redis, type: reads_writes, protocol: redis }
+  - { from: web, to: memcached, type: reads_writes, protocol: memcached }
+  - { from: web, to: snuba-api, type: calls, protocol: http }
+  - { from: web, to: seaweedfs, type: reads_writes, protocol: s3, description: Nodestore bucket }
+  - { from: web, to: sentry-data, type: reads_writes, protocol: file }
+  - { from: ingest-consumers, to: pgbouncer, type: reads_writes, protocol: postgres }
+  - { from: ingest-consumers, to: redis, type: reads_writes, protocol: redis }
+  - { from: ingest-consumers, to: memcached, type: reads_writes, protocol: memcached }
+  - { from: ingest-consumers, to: snuba-api, type: calls, protocol: http }
+  - { from: ingest-consumers, to: seaweedfs, type: reads_writes, protocol: s3, description: Nodestore bucket }
+  - { from: ingest-consumers, to: sentry-data, type: reads_writes, protocol: file }
+  - { from: post-process-forwarders, to: pgbouncer, type: reads_writes, protocol: postgres }
+  - { from: post-process-forwarders, to: redis, type: reads_writes, protocol: redis }
+  - { from: post-process-forwarders, to: memcached, type: reads_writes, protocol: memcached }
+  - { from: post-process-forwarders, to: snuba-api, type: calls, protocol: http }
+  - { from: post-process-forwarders, to: seaweedfs, type: reads_writes, protocol: s3, description: Nodestore bucket }
+  - { from: post-process-forwarders, to: sentry-data, type: reads_writes, protocol: file }
+  - { from: taskscheduler, to: pgbouncer, type: reads_writes, protocol: postgres }
+  - { from: taskscheduler, to: redis, type: reads_writes, protocol: redis }
+  - { from: taskscheduler, to: memcached, type: reads_writes, protocol: memcached }
+  - { from: taskscheduler, to: snuba-api, type: calls, protocol: http }
+  - { from: taskscheduler, to: seaweedfs, type: reads_writes, protocol: s3, description: Nodestore bucket }
+  - { from: taskscheduler, to: sentry-data, type: reads_writes, protocol: file }
+  - { from: taskworker, to: pgbouncer, type: reads_writes, protocol: postgres }
+  - { from: taskworker, to: redis, type: reads_writes, protocol: redis }
+  - { from: taskworker, to: memcached, type: reads_writes, protocol: memcached }
+  - { from: taskworker, to: snuba-api, type: calls, protocol: http }
+  - { from: taskworker, to: seaweedfs, type: reads_writes, protocol: s3, description: Nodestore bucket }
+  - { from: taskworker, to: sentry-data, type: reads_writes, protocol: file }
+  - { from: sentry-cleanup, to: pgbouncer, type: reads_writes, protocol: postgres }
+  - { from: sentry-cleanup, to: redis, type: reads_writes, protocol: redis }
+  - { from: sentry-cleanup, to: memcached, type: reads_writes, protocol: memcached }
+  - { from: sentry-cleanup, to: snuba-api, type: calls, protocol: http }
+  - { from: sentry-cleanup, to: seaweedfs, type: reads_writes, protocol: s3, description: Nodestore bucket }
+  - { from: sentry-cleanup, to: sentry-data, type: reads_writes, protocol: file }
+  - { from: web, to: symbolicator, type: calls, protocol: http }
+  - { from: ingest-consumers, to: symbolicator, type: calls, protocol: http }
+  - { from: web, to: smtp, type: calls, protocol: smtp }
+  - { from: post-process-forwarders, to: smtp, type: calls, protocol: smtp }
+  - { from: taskworker, to: smtp, type: calls, protocol: smtp }
+  - { from: web, to: kafka, type: publishes, protocol: kafka, description: Event stream }
+  - { from: ingest-consumers, to: kafka, type: consumes, protocol: kafka }
+  - { from: ingest-consumers, to: kafka, type: publishes, protocol: kafka, description: 'Event stream, after processing' }
+  - { from: post-process-forwarders, to: kafka, type: consumes, protocol: kafka }
+  - { from: taskscheduler, to: kafka, type: publishes, protocol: kafka, description: taskworker topic }
+  - { from: taskworker, to: taskbroker, type: calls, protocol: grpc }
+  - { from: taskbroker, to: kafka, type: consumes, protocol: kafka, description: taskworker and subscription result topics }
+  - { from: taskbroker, to: kafka, type: publishes, protocol: kafka, description: taskworker-dlq }
+  - { from: launchpad-taskworker, to: taskbroker, type: calls, protocol: grpc }
+  - { from: launchpad-taskworker, to: kafka, type: depends_on, protocol: kafka }
+  - { from: launchpad-taskworker, to: web, type: calls, protocol: http }
+  - { from: snuba-api, to: clickhouse, type: reads, protocol: http }
+  - { from: snuba-api, to: redis, type: reads_writes, protocol: redis }
+  - { from: snuba-api, to: kafka, type: depends_on, protocol: kafka }
+  - { from: snuba-consumers, to: kafka, type: consumes, protocol: kafka }
+  - { from: snuba-consumers, to: clickhouse, type: writes, protocol: http }
+  - { from: snuba-consumers, to: redis, type: reads_writes, protocol: redis }
+  - { from: snuba-subscriptions, to: kafka, type: consumes, protocol: kafka }
+  - { from: snuba-subscriptions, to: kafka, type: publishes, protocol: kafka, description: 'Subscription results, consumed by the task broker' }
+  - { from: snuba-subscriptions, to: clickhouse, type: reads, protocol: http }
+  - { from: snuba-subscriptions, to: redis, type: reads_writes, protocol: redis }
+  - { from: symbolicator-cleanup, to: symbolicator, type: depends_on, description: Shares its cache volume }
+  - { from: vroom, to: kafka, type: consumes, protocol: kafka, description: Profiles }
+  - { from: vroom, to: kafka, type: publishes, protocol: kafka, description: Occurrences }
+  - { from: vroom, to: seaweedfs, type: reads_writes, protocol: s3, description: Profiles bucket }
+  - { from: vroom, to: snuba-api, type: calls, protocol: http }
+  - { from: uptime-checker, to: kafka, type: publishes, protocol: kafka, description: Uptime results }
+  - { from: uptime-checker, to: redis, type: reads_writes, protocol: redis }
+  - { from: pgbouncer, to: postgres, type: serves, protocol: postgres }
+
+diagrams:
+  - file: diagrams/event-path.mmd
+    title: The path of an event
+    components: [relay, ingest-consumers, snuba-consumers, kafka, clickhouse]
