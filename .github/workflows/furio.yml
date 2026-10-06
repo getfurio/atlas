@@ -21,6 +21,6 @@ jobs:
       - name: List the manifests
         id: systems
         run: echo "paths=$(echo systems/*/*/ | tr -d '\n')" >> "$GITHUB_OUTPUT"
-      - uses: getfurio/furio@58afc11a9715b9579044318cf8c297f97e7251f0 # v0.6.2
+      - uses: getfurio/furio@84ddf98b7cd8d70f1a56cb204d9baf8031b33532 # v0.6.3
         with:
           path: ${{ steps.systems.outputs.paths }}
