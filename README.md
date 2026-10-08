@@ -14,6 +14,8 @@ affiliated with or endorsed by the project it describes.
 | [OpenTelemetry Demo](https://github.com/open-telemetry/opentelemetry-demo) | 3.1.0 | 28 | [architecture.yaml](systems/opentelemetry-demo/opentelemetry-demo/.architecture/architecture.yaml) | [SOURCES.md](systems/opentelemetry-demo/SOURCES.md) |
 | [Supabase](https://github.com/supabase/supabase/tree/master/docker), self-hosted | commit `7353782` | 14 | [architecture.yaml](systems/supabase/supabase/.architecture/architecture.yaml) | [SOURCES.md](systems/supabase/SOURCES.md) |
 | [Sentry](https://github.com/getsentry/self-hosted), self-hosted | 26.9.0 | 26 | [architecture.yaml](systems/sentry/self-hosted/.architecture/architecture.yaml) | [SOURCES.md](systems/sentry/SOURCES.md) |
+| [Harbor](https://github.com/goharbor/harbor) | v2.15.3 | 13 | [architecture.yaml](systems/harbor/harbor/.architecture/architecture.yaml) | [SOURCES.md](systems/harbor/SOURCES.md) |
+| [Argo CD](https://github.com/argoproj/argo-cd) | v3.5.4 | 11 | [architecture.yaml](systems/argo-cd/argo-cd/.architecture/architecture.yaml) | [SOURCES.md](systems/argo-cd/SOURCES.md) |
 
 ## The map
 
@@ -22,6 +24,8 @@ Each system has a map of its own, rebuilt on each change to this repo:
 - **[OpenTelemetry Demo](https://getfurio.github.io/atlas/opentelemetry-demo/)**
 - **[Supabase, self-hosted](https://getfurio.github.io/atlas/supabase/)**
 - **[Sentry, self-hosted](https://getfurio.github.io/atlas/sentry/)**
+- **[Harbor](https://getfurio.github.io/atlas/harbor/)**
+- **[Argo CD](https://getfurio.github.io/atlas/argo-cd/)**
 
 [getfurio.github.io/atlas](https://getfurio.github.io/atlas/) shows them all side by side. The
 systems are unrelated: they share a page, not an architecture.
@@ -58,6 +62,22 @@ Collector and keeps working without it, so the blast radius does not follow them
 | What is affected if Redis goes down? | [Blast radius of redis](https://getfurio.github.io/atlas/sentry/#/?sel=sentry/redis&mode=impact) |
 | What if ClickHouse goes down? | [Blast radius of clickhouse](https://getfurio.github.io/atlas/sentry/#/?sel=sentry/clickhouse&mode=impact) |
 | What does the web app need to work? | [What web depends on](https://getfurio.github.io/atlas/sentry/#/?sel=sentry/web&mode=depends) |
+
+### Harbor
+
+| Question | View |
+| --- | --- |
+| What stops working if Redis goes down? | [Blast radius of redis](https://getfurio.github.io/atlas/harbor/#/?sel=harbor/redis&mode=impact) |
+| What is affected if Postgres goes down? | [Blast radius of postgresql](https://getfurio.github.io/atlas/harbor/#/?sel=harbor/postgresql&mode=impact) |
+| What does core need to work? | [What core depends on](https://getfurio.github.io/atlas/harbor/#/?sel=harbor/core&mode=depends) |
+
+### Argo CD
+
+| Question | View |
+| --- | --- |
+| What stops working if the repository server goes down? | [Blast radius of repo-server](https://getfurio.github.io/atlas/argo-cd/#/?sel=argo-cd/repo-server&mode=impact) |
+| What is affected if Redis goes down? | [Blast radius of redis](https://getfurio.github.io/atlas/argo-cd/#/?sel=argo-cd/redis&mode=impact) |
+| What does a sync need? | [What the application controller depends on](https://getfurio.github.io/atlas/argo-cd/#/?sel=argo-cd/application-controller&mode=depends) |
 
 ### Build it yourself
 

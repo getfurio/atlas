@@ -1,0 +1,150 @@
+# yaml-language-server: $schema=https://getfurio.com/schema/v1.json
+# Unofficial map, reconstructed from public sources: goharbor/harbor at release v2.15.3 (the
+# offline/online installer, make/). Not affiliated with the Harbor project or the CNCF.
+# Sources: ../../SOURCES.md
+version: 1
+project: harbor
+owner: goharbor
+closed: true
+
+components:
+  - id: proxy
+    type: proxy
+    name: nginx
+    description: 'Single entry point on 80/443; the UI goes to the portal, API, token service and the Docker Registry API (/v2/) to core'
+    tech: nginx
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/photon/prepare/templates/nginx/nginx.http.conf.jinja
+  - id: portal
+    type: frontend
+    name: Portal
+    description: 'The web UI, static files served by nginx'
+    tech: nginx
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/photon/prepare/templates/portal/nginx.conf.jinja
+  - id: core
+    type: service
+    name: Core
+    description: 'The API, the token service for the registry, authentication, projects, replication, webhooks; the Registry API goes through it'
+    tech: go
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/photon/prepare/templates/core/env.jinja
+      repo: https://github.com/goharbor/harbor
+  - id: jobservice
+    type: service
+    name: Job service
+    description: 'Runs the asynchronous jobs: replication, garbage collection, scans, webhooks, retention'
+    tech: go
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/photon/prepare/templates/jobservice/config.yml.jinja
+      repo: https://github.com/goharbor/harbor
+  - id: registry
+    type: service
+    name: Registry
+    description: The OCI distribution registry that stores and serves the images
+    tech: distribution
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/photon/prepare/templates/registry/config.yml.jinja
+      repo: https://github.com/distribution/distribution
+  - id: registryctl
+    type: service
+    name: Registry controller
+    description: 'Control API over the registry''s storage, used for garbage collection'
+    tech: go
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/photon/prepare/templates/registryctl/env.jinja
+      repo: https://github.com/goharbor/harbor
+  - id: trivy-adapter
+    type: service
+    name: Trivy adapter
+    description: Vulnerability scanner; installed with --with-trivy
+    tech: trivy
+    tags: [optional]
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/photon/prepare/templates/trivy-adapter/env.jinja
+      repo: https://github.com/goharbor/harbor-scanner-trivy
+  - id: exporter
+    type: service
+    name: Exporter
+    description: Prometheus metrics of Harbor; runs when metric.enabled is set
+    tech: go
+    tags: [optional]
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/photon/prepare/templates/exporter/env.jinja
+      repo: https://github.com/goharbor/harbor
+  - id: log
+    type: service
+    name: Log collector
+    description: rsyslog container every other container sends its logs to (Docker syslog driver)
+    tech: rsyslog
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/photon/prepare/templates/docker_compose/docker-compose.yml.jinja
+  - id: postgresql
+    type: database
+    name: Postgres
+    description: Harbor's database; replaceable by an external one in harbor.yml
+    tech: postgres
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/photon/prepare/templates/db
+  - id: redis
+    type: cache
+    name: Redis
+    description: 'Valkey: sessions and cache for core, the job queue, the registry''s layer cache, the scanner''s store; replaceable by an external one'
+    tech: valkey
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/photon/prepare/templates/docker_compose/docker-compose.yml.jinja
+  - id: data
+    type: storage
+    name: Data volume
+    description: '/data on the host: the registry storage (filesystem driver, the default), the database, Redis, CA, job logs'
+    tech: docker-volume
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/harbor.yml.tmpl
+  - id: trivy-db
+    type: external
+    name: Trivy vulnerability database
+    description: Downloaded by the scanner unless skip_update is set in harbor.yml
+    tags: [optional]
+    links:
+      source: https://github.com/goharbor/harbor/blob/v2.15.3/make/harbor.yml.tmpl
+
+relations:
+  - { from: proxy, to: portal, type: serves, protocol: http, description: / }
+  - { from: proxy, to: core, type: serves, protocol: http, description: '/c/, /api/, /v2/, /service/' }
+  - { from: core, to: postgresql, type: reads_writes, protocol: postgres }
+  - { from: core, to: redis, type: reads_writes, protocol: redis, description: '_REDIS_URL_CORE, _REDIS_URL_HARBOR, cache layer' }
+  - { from: core, to: registry, type: calls, protocol: http, description: REGISTRY_URL }
+  - { from: core, to: registryctl, type: calls, protocol: http, description: REGISTRY_CONTROLLER_URL }
+  - { from: core, to: jobservice, type: calls, protocol: http, description: JOBSERVICE_URL }
+  - { from: core, to: trivy-adapter, type: calls, protocol: http, description: 'TRIVY_ADAPTER_URL, with --with-trivy' }
+  - { from: core, to: data, type: reads_writes, protocol: file, description: '/data: CA download, secrets' }
+  - { from: jobservice, to: core, type: calls, protocol: http, description: CORE_URL }
+  - { from: jobservice, to: registry, type: calls, protocol: http, description: REGISTRY_URL }
+  - { from: jobservice, to: registryctl, type: calls, protocol: http, description: REGISTRY_CONTROLLER_URL }
+  - { from: jobservice, to: redis, type: reads_writes, protocol: redis, description: Job queue (worker_pool.backend redis) }
+  - { from: jobservice, to: data, type: writes, protocol: file, description: Job logs }
+  - { from: registry, to: redis, type: reads_writes, protocol: redis, description: Layer info cache }
+  - { from: registry, to: data, type: reads_writes, protocol: file, description: Image blobs and manifests under /data/registry }
+  - { from: registryctl, to: data, type: reads_writes, protocol: file, description: The same registry storage }
+  - { from: trivy-adapter, to: redis, type: reads_writes, protocol: redis, description: Store and job queue }
+  - { from: trivy-adapter, to: trivy-db, type: calls, protocol: https, description: Database updates }
+  - { from: exporter, to: core, type: calls, protocol: http, description: HARBOR_SERVICE_HOST }
+  - { from: exporter, to: postgresql, type: reads, protocol: postgres }
+  - { from: exporter, to: redis, type: reads, protocol: redis, description: Job service queue lengths }
+  - { from: postgresql, to: data, type: reads_writes, protocol: file, description: /data/database }
+  - { from: redis, to: data, type: reads_writes, protocol: file, description: /data/redis }
+  - { from: proxy, to: log, type: calls, protocol: syslog, critical: false, description: Docker syslog driver }
+  - { from: portal, to: log, type: calls, protocol: syslog, critical: false, description: Docker syslog driver }
+  - { from: core, to: log, type: calls, protocol: syslog, critical: false, description: Docker syslog driver }
+  - { from: jobservice, to: log, type: calls, protocol: syslog, critical: false, description: Docker syslog driver }
+  - { from: registry, to: log, type: calls, protocol: syslog, critical: false, description: Docker syslog driver }
+  - { from: registryctl, to: log, type: calls, protocol: syslog, critical: false, description: Docker syslog driver }
+  - { from: trivy-adapter, to: log, type: calls, protocol: syslog, critical: false, description: Docker syslog driver }
+  - { from: exporter, to: log, type: calls, protocol: syslog, critical: false, description: Docker syslog driver }
+  - { from: postgresql, to: log, type: calls, protocol: syslog, critical: false, description: Docker syslog driver }
+  - { from: redis, to: log, type: calls, protocol: syslog, critical: false, description: Docker syslog driver }
+
+diagrams:
+  - file: diagrams/push.mmd
+    title: Pushing an image
+    components: [proxy, core, registry]
