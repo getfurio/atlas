@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant D as docker push
+    participant P as nginx
+    participant C as Core
+    participant R as Registry
+    participant S as /data/registry
+
+    D->>P: GET /v2/ (no token)
+    P->>C: /v2/
+    C-->>D: 401, realm /service/token
+    D->>P: GET /service/token
+    P->>C: /service/token
+    C-->>D: token (checks the project's permissions)
+    D->>P: PUT /v2/<project>/<repo>/... (token)
+    P->>C: /v2/...
+    C->>R: the same request, as the registry's basic auth user
+    R->>S: writes blobs and the manifest
+    R-->>D: 201

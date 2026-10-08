@@ -1,0 +1,10 @@
+flowchart LR
+    dev[Developer] -- git push --> git[(Git repository)]
+    git -. webhook .-> server[API server]
+    server --> redis[(Redis)]
+    ctrl[Application controller] -- desired manifests --> repo[Repository server]
+    repo -- clone, fetch --> git
+    repo --> redis
+    ctrl -- live state, sync --> kube[Kubernetes API of the target cluster]
+    ctrl --> redis
+    ui[Web UI, CLI] --> server --> repo

@@ -1,0 +1,112 @@
+# yaml-language-server: $schema=https://getfurio.com/schema/v1.json
+# Unofficial map, reconstructed from public sources: argoproj/argo-cd at release v3.5.4
+# (manifests/install.yaml). Not affiliated with the Argo project or the CNCF. Sources: ../../SOURCES.md
+version: 1
+project: argo-cd
+owner: argoproj
+closed: true
+
+components:
+  - id: server
+    type: service
+    name: API server
+    description: 'gRPC and REST API behind the web UI, the CLI and CI systems; authentication, RBAC, credentials as Kubernetes secrets, Git webhook listener'
+    tech: go
+    links:
+      source: https://github.com/argoproj/argo-cd/blob/v3.5.4/manifests/base/server/argocd-server-deployment.yaml
+      repo: https://github.com/argoproj/argo-cd
+  - id: repo-server
+    type: service
+    name: Repository server
+    description: 'Keeps a local cache of the Git repositories and renders the manifests (Helm, Kustomize, plain YAML)'
+    tech: go
+    links:
+      source: https://github.com/argoproj/argo-cd/blob/v3.5.4/manifests/base/repo-server/argocd-repo-server-deployment.yaml
+      repo: https://github.com/argoproj/argo-cd
+  - id: application-controller
+    type: service
+    name: Application controller
+    description: Kubernetes controller that compares the live state of each application with the desired one and syncs it
+    tech: go
+    links:
+      source: https://github.com/argoproj/argo-cd/blob/v3.5.4/manifests/base/application-controller/argocd-application-controller-statefulset.yaml
+      repo: https://github.com/argoproj/argo-cd
+  - id: applicationset-controller
+    type: service
+    name: ApplicationSet controller
+    description: 'Generates Applications from ApplicationSets (lists, clusters, Git directories, pull requests...)'
+    tech: go
+    links:
+      source: https://github.com/argoproj/argo-cd/blob/v3.5.4/manifests/base/applicationset-controller/argocd-applicationset-controller-deployment.yaml
+      repo: https://github.com/argoproj/argo-cd
+  - id: notifications-controller
+    type: service
+    name: Notifications controller
+    description: Sends notifications about application events to the configured services
+    tech: go
+    links:
+      source: https://github.com/argoproj/argo-cd/blob/v3.5.4/manifests/base/notification/argocd-notifications-controller-deployment.yaml
+      repo: https://github.com/argoproj/argo-cd
+  - id: dex
+    type: service
+    name: Dex
+    description: OIDC provider that delegates sign-in to external identity providers (SSO)
+    tech: dex
+    links:
+      source: https://github.com/argoproj/argo-cd/blob/v3.5.4/manifests/base/dex/argocd-dex-server-deployment.yaml
+      repo: https://github.com/dexidp/dex
+  - id: redis
+    type: cache
+    name: Redis
+    description: 'Cache shared by the API server, the repository server and the application controller'
+    tech: redis
+    links:
+      source: https://github.com/argoproj/argo-cd/blob/v3.5.4/manifests/base/redis/argocd-redis-deployment.yaml
+  - id: kube-api
+    type: external
+    name: Kubernetes API
+    description: 'The API server of the cluster Argo CD runs in (its own CRDs, secrets and config maps) and of the clusters it deploys to'
+    links:
+      source: https://github.com/argoproj/argo-cd/blob/v3.5.4/docs/operator-manual/architecture.md
+  - id: git
+    type: external
+    name: Git repositories and Helm registries
+    description: Where the application manifests and charts come from
+    links:
+      source: https://github.com/argoproj/argo-cd/blob/v3.5.4/docs/operator-manual/architecture.md
+  - id: idp
+    type: external
+    name: Identity provider
+    description: The SSO provider Dex or the API server delegates sign-in to; optional
+    links:
+      source: https://github.com/argoproj/argo-cd/blob/v3.5.4/docs/operator-manual/architecture.md
+  - id: notification-services
+    type: external
+    name: Notification services
+    description: 'Slack, email, webhooks and the other services the notifications controller delivers to'
+    links:
+      source: https://github.com/argoproj/argo-cd/blob/v3.5.4/docs/operator-manual/architecture.md
+
+relations:
+  - { from: server, to: repo-server, type: calls, protocol: grpc, description: Renders manifests for the UI and the API }
+  - { from: server, to: redis, type: reads_writes, protocol: redis }
+  - { from: server, to: dex, type: calls, protocol: http, description: SSO login }
+  - { from: server, to: kube-api, type: reads_writes, protocol: https, description: 'Applications, projects, repository and cluster secrets' }
+  - { from: server, to: git, type: calls, protocol: https, description: Receives Git webhooks; validates repository credentials }
+  - { from: application-controller, to: repo-server, type: calls, protocol: grpc, description: Desired manifests }
+  - { from: application-controller, to: redis, type: reads_writes, protocol: redis, description: Application state cache }
+  - { from: application-controller, to: kube-api, type: reads_writes, protocol: https, description: 'Live state and sync, in every target cluster' }
+  - { from: applicationset-controller, to: repo-server, type: calls, protocol: grpc, description: Git generators }
+  - { from: applicationset-controller, to: kube-api, type: reads_writes, protocol: https, description: Creates and updates Applications }
+  - { from: applicationset-controller, to: git, type: calls, protocol: https, description: SCM and pull request generators }
+  - { from: notifications-controller, to: repo-server, type: calls, protocol: grpc }
+  - { from: notifications-controller, to: kube-api, type: reads, protocol: https, description: Watches Applications }
+  - { from: notifications-controller, to: notification-services, type: calls, protocol: https }
+  - { from: repo-server, to: git, type: calls, protocol: https, description: Clones and fetches; pulls charts }
+  - { from: repo-server, to: redis, type: reads_writes, protocol: redis, description: Manifest cache }
+  - { from: dex, to: idp, type: calls, protocol: https, description: 'OIDC, SAML, LDAP and the other connectors' }
+
+diagrams:
+  - file: diagrams/sync.mmd
+    title: From a commit to a sync
+    components: [application-controller, repo-server, git, kube-api]
